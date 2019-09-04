@@ -68,6 +68,6 @@ Throughout the file, "NA" values represent missing data. Missing data might resu
 
 **ev_size** is a numeric column that includes the mean cumulative daily precipitation size in mm for that water year at a particular Sevilleta meteorlogical station. Values range from 2.036842 to 11.454142
 
-**extreme_size** is a numeric column that includes the number of cumulative daily precipitation size in mm that exceed an extreme threshold (17.2 mm in this case) for that water year at a particular Sevilleta meteorlogical station. Values range from 1 to 5
+**extreme_size** is a numeric column that includes the number of cumulative daily precipitation eventsthat exceed an extreme threshold (17.2 mm in this case) for that water year at a particular Sevilleta meteorlogical station. Values range from 1 to 5
 
-**events** is a numeric column that includes the number of cumulative daily precipitation size in mm that exceed a minimum threshold (0.3 mm in this case) for that water year at a particular Sevilleta meteorlogical station. Values range from 6 to 88
+**events** is a numeric column that includes the number of cumulative daily precipitation events that exceed a minimum threshold (0.3 mm in this case) for that water year at a particular Sevilleta meteorlogical station. Values range from 6 to 88
