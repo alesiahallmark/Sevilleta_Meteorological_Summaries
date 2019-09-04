@@ -184,7 +184,7 @@ dailyMet$Station_years <- paste(dailyMet$Sta, dailyMet$water.year, sep="_")
 Stationyears <- unique(dailyMet$Station_years) #list of station-years
 Stations <- unique(dailyMet$Sta)
 
-column.names <- c("Sta", "water.year", "precip.annual", "precip.JJAS", "precip.FMAM", "precip.ONDJ", "precip.intra_CV", "events", "ev_size", "extreme_size", "CDD", "extreme.CDD", "GDD.AMJJASO", "GDD.FMAM", "soil_T", "soil_T.MJJAS", "VPD.ASO", "VPD.MJJ", "air_T", "air_T.MJJAS", "maxmonthly.air_T.JJA", "minmonthly.air_T.DJF")
+column.names <- c("Sta", "water.year", "precip.annual", "precip.JJAS", "precip.FMAM", "precip.ONDJ", "precip.intra_CV", "events", "ev_size", "extreme_size", "CDD", "extreme.CDD", "GDD.AMJJAS", "GDD.FMAM", "soil_T", "soil_T.MJJAS", "VPD.ASO", "VPD.MJJ", "air_T", "air_T.MJJAS", "maxmonthly.air_T.JJA", "minmonthly.air_T.DJF")
 
 Met <- data.frame(matrix(NA, nrow=length(Stationyears), ncol=length(column.names)))
 colnames(Met) <- column.names
@@ -220,8 +220,8 @@ for (i in 1:length(Stationyears)) {
   
   # If we have data after April 1 of the station-year, calculate the following:
   if (FirstDate <= yday(as.Date("April 1", "%B %d"))) {
-    Met$GDD.AMJJASO[i] <- sum(subdata$GDD_calc[subdata$GDD_calc > 0 & 
-                                         subdata$Month %in% 4:10], na.rm=T)
+    Met$GDD.AMJJAS[i] <- sum(subdata$GDD_calc[subdata$GDD_calc > 0 & 
+                                         subdata$Month %in% 4:9], na.rm=T)
   }
   
   # If we have data after February 1 of the station-year, calculate the following:
@@ -238,9 +238,10 @@ for (i in 1:length(Stationyears)) {
     Met$precip.annual[i] <- sum(subdata$Precip, na.rm = T)
     Met$precip.intra_CV[i] <- sd(subdata$Precip, na.rm=T) / mean(subdata$Precip, na.rm=T)
     Met$soil_T[i] <- mean(subdata$Avg_Soil_Temp, na.rm=T)
+    Met$air_T[i] <- mean(subdata$Avg_Temp, na.rm=T)
     Met$meanmin.air_T.DJF[i] <- mean(subdata$Min_Temp[subdata$Month %in% c(12,1,2)], na.rm=T)   
     
-    eventdata <- subdata[subdata$Precip > 0.3,]
+    eventdata <- subdata[!is.na(subdata$Precip) & subdata$Precip > 0.3,]
     threshold <- quantile(eventdata$Precip, probs = 0.95, na.rm = T)
     Met$events[i] <- length(eventdata[,1])
     Met$ev_size[i] <- mean(eventdata$Precip, na.rm=T) 
@@ -268,7 +269,7 @@ Met$extreme_CDD<-c()
 
 for (i in 1:length(Stationyears)){
   subdata <- dailyMet[dailyMet$Station_years %in% Stationyears[i],]
-  if (subdata$water.year[1] %in% min(dailyMet$water.year[dailyMet$Sta==subdata$Sta[1]])) next    
+  if (subdata$water.year[1] %in% min(dailyMet$water.year[dailyMet$Sta%in%subdata$Sta[1]])) next    
   eventdata <- subdata[subdata$Precip > 0.3,]
   diffs <- c() #reinitiate each time
   for (j in 1:(length(eventdata[,1])-1)){
@@ -281,6 +282,16 @@ for (i in 1:length(Stationyears)){
   
 # Subset to years with precip data
 Met <- Met[!is.na(Met$Sta) & Met$water.year > 0 & Met$precip.annual > 0,]
+
+# Filter out some extreme values
+#ggplot(Met, aes(x = water.year, y = events, group = Sta, colour = as.factor(Sta))) + geom_line()
+Met$GDD.FMAM[Met$GDD.FMAM < 500] <- NA
+Met$GDD.AMJJAS[Met$GDD.AMJJAS < 3000] <- NA
+Met$soil_T[Met$soil_T > 19.7 | Met$soil_T < 14] <- NA
+Met$soil_T.MJJAS[Met$soil_T.MJJAS < 22] <- NA
+Met$air_T[Met$air_T > 18 | Met$air_T < 11] <- NA
+Met$extreme_CDD[Met$extreme_CDD > 10 ] <- NA
+
 
 # Make incomplete summary data NA
 Met <- Met[Met$water.year <= max(dailyMet$Year),]
@@ -299,11 +310,11 @@ Metmerge <- join_all(list(Met, sy_SPEI[!is.na(sy_SPEI$Sta),]), type = "left")
 #Doug was going to fix this
 
 #Write out
-write.csv(Metmerge[!is.na(Metmerge$Sta), c("Sta", "Station.Name", "lat", "long", "elevation", "water.year", "precip.annual", "precip.ONDJ", "precip.FMAM", "precip.JJAS", "precip.intra_CV", "GDD.FMAM", "GDD.AMJJASO", "soil_T", "soil_T.MJJAS", "air_T", "air_T.MJJAS", "meanmax.air_T.JJA", "meanmin.air_T.DJF", "CDD", "extreme_CDD", "VPD.MJJ", "VPD.ASO", "SPEI_12.May", "SPEI_6.May", "SPEI_12.Sept", "SPEI_6.Sept", "SPEI_12.May.core", "SPEI_6.May.core", "SPEI_12.Sept.core", "SPEI_6.Sept.core", "ev_size", "extreme_size", "events")],file=paste0("~/Desktop/SEVmetAJ_", format(Sys.Date(), "%d%b%y"), ".csv"), row.names = F)
+write.csv(Metmerge[!is.na(Metmerge$Sta), c("Sta", "Station.Name", "lat", "long", "elevation", "water.year", "precip.annual", "precip.ONDJ", "precip.FMAM", "precip.JJAS", "precip.intra_CV", "GDD.FMAM", "GDD.AMJJAS", "soil_T", "soil_T.MJJAS", "air_T", "air_T.MJJAS", "meanmax.air_T.JJA", "meanmin.air_T.DJF", "CDD", "extreme_CDD", "VPD.MJJ", "VPD.ASO", "SPEI_12.May", "SPEI_6.May", "SPEI_12.Sept", "SPEI_6.Sept", "SPEI_12.May.core", "SPEI_6.May.core", "SPEI_12.Sept.core", "SPEI_6.Sept.core", "ev_size", "extreme_size", "events")],file=paste0("~/Desktop/SEVmetAJ_", format(Sys.Date(), "%d%b%y"), ".csv"), row.names = F)
 
 
 #ggplot(sy_SPEI, aes(x = water.year, y = SPEI_12.Sept, group = Station.Name, colour = Station.Name)) + geom_line()
 
-#ggplot(Metmerge, aes(x = water.year, y = meanmin.air_T.DJF, group = Station.Name, colour = Station.Name)) + geom_line()
+#ggplot(Metmerge, aes(x = water.year, y = soil_T, group = Station.Name, colour = Station.Name)) + geom_line()
 
 
